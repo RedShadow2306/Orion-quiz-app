@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orion - Join</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0a0a1a;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .stars {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+        .container {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 25px;
+            padding: 50px 40px;
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        .icon { font-size: 4rem; margin-bottom: 15px; }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #f472b6, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p { opacity: 0.6; margin-bottom: 35px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            opacity: 0.6;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        input {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.3s;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        input:focus { border-color: #f472b6; }
+        input::placeholder { opacity: 0.4; }
+        .btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #f472b6, #ec4899);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            letter-spacing: 1px;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(244,114,182,0.4);
+        }
+        .back {
+            display: block;
+            margin-top: 20px;
+            color: rgba(255,255,255,0.4);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+        .back:hover { color: white; }
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 10px;
+            display: none;
+            font-size: 0.9rem;
+        }
+        .error { background: rgba(239,68,68,0.2); color: #fca5a5; }
+        .success { background: rgba(34,197,94,0.2); color: #86efac; }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div class="container">
+        <div class="icon">🎮</div>
+        <h1>Join a Quiz</h1>
+        <p>Enter the code given by your host</p>
+
+        <div class="form-group">
+            <label>Your Name</label>
+            <input type="text" id="username" placeholder="Enter your name" />
+        </div>
+        <div class="form-group">
+            <label>Quiz Code</label>
+            <input type="text" id="joinCode" placeholder="e.g. ABC123"
+                style="text-transform:uppercase; letter-spacing:4px; font-size:1.3rem; text-align:center;" />
+        </div>
+
+        <button class="btn" onclick="joinQuiz()">🚀 Join Now</button>
+        <div class="message" id="message"></div>
+        <a href="/" class="back">← Back to Home</a>
+    </div>
+<script>
+    // Generate stars
+    const starsContainer = document.getElementById('stars');
+    for (let i = 0; i < 80; i++) {
+        const star = document.createElement('div');
+        star.classList.add('star');
+        const size = Math.random() * 3 + 1;
+        star.style.width = size + 'px';
+        star.style.height = size + 'px';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.animationDelay = Math.random() * 3 + 's';
+        star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+        starsContainer.appendChild(star);
+    }
+
+    async function joinQuiz() {
+        const username = document.getElementById('username').value.trim();
+        const joinCode = document.getElementById('joinCode').value.trim().toUpperCase();
+        const msg = document.getElementById('message');
+
+        if (!username || !joinCode) {
+            msg.style.display = 'block';
+            msg.className = 'message error';
+            msg.textContent = '⚠️ Please fill in both fields!';
+            return;
+        }
+
+        try {
+            const res = await fetch('/join-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, join_code: joinCode })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                msg.style.display = 'block';
+                msg.className = 'message success';
+                msg.textContent = '✅ Joined! Loading quiz...';
+                setTimeout(() => {
+                    window.location.href = `play.html?code=${joinCode}&user_id=${data.user_id}&name=${encodeURIComponent(username)}`;
+                }, 1000);
+            } else {
+                msg.style.display = 'block';
+                msg.className = 'message error';
+                msg.textContent = '❌ ' + (data.error || 'Quiz code not found!');
+            }
+        } catch (err) {
+            msg.style.display = 'block';
+            msg.className = 'message error';
+            msg.textContent = '❌ Something went wrong. Try again!';
+        }
+    }
+
+    document.getElementById('joinCode').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') joinQuiz();
+    });
+</script>
+</body>
+</html>

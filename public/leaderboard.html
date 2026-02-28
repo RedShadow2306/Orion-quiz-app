@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orion - Leaderboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0a0a1a;
+            min-height: 100vh;
+            color: white;
+            padding: 30px 20px;
+        }
+        .stars {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+        .page {
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 35px;
+        }
+        .back {
+            color: rgba(255,255,255,0.4);
+            text-decoration: none;
+            font-size: 1.5rem;
+        }
+        .back:hover { color: white; }
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(90deg, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .search-box {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 12px 18px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            font-family: 'Segoe UI', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+        input::placeholder { opacity: 0.3; text-transform: none; letter-spacing: 0; }
+        input:focus { border-color: #fbbf24; }
+        .search-btn {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border: none;
+            border-radius: 10px;
+            color: #0a0a1a;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+        }
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(251,191,36,0.3);
+        }
+
+        .podium {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        .podium-item {
+            text-align: center;
+            flex: 1;
+            max-width: 150px;
+        }
+        .podium-avatar {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+        .podium-name {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .podium-score {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #fbbf24;
+            margin-bottom: 8px;
+        }
+        .podium-block {
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .first .podium-block {
+            height: 100px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #0a0a1a;
+        }
+        .second .podium-block {
+            height: 70px;
+            background: linear-gradient(135deg, #9ca3af, #6b7280);
+        }
+        .third .podium-block {
+            height: 50px;
+            background: linear-gradient(135deg, #cd7c2f, #a05c1a);
+        }
+
+        .leaderboard-list {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .list-header {
+            display: grid;
+            grid-template-columns: 60px 1fr 100px;
+            padding: 15px 20px;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.75rem;
+            opacity: 0.4;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .list-item {
+            display: grid;
+            grid-template-columns: 60px 1fr 100px;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            align-items: center;
+            transition: background 0.3s;
+        }
+        .list-item:hover { background: rgba(255,255,255,0.03); }
+        .list-item:last-child { border-bottom: none; }
+        .rank {
+            font-size: 1.1rem;
+            font-weight: bold;
+            opacity: 0.5;
+        }
+        .rank-1 { color: #fbbf24; opacity: 1; }
+        .rank-2 { color: #9ca3af; opacity: 1; }
+        .rank-3 { color: #cd7c2f; opacity: 1; }
+        .player-name {
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        .score {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #a78bfa;
+            text-align: right;
+        }
+        .empty {
+            text-align: center;
+            padding: 50px 20px;
+            opacity: 0.4;
+        }
+        .empty-icon { font-size: 3rem; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <div class="page">
+        <div class="header">
+            <a href="/" class="back">←</a>
+            <h1>🏆 Leaderboard</h1>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="sessionCode" placeholder="Enter session code..." />
+            <button class="search-btn" onclick="loadLeaderboard()">Load</button>
+        </div>
+
+        <div id="podium" class="podium" style="display:none;"></div>
+
+        <div class="leaderboard-list">
+            <div class="list-header">
+                <span>Rank</span>
+                <span>Player</span>
+                <span style="text-align:right">Score</span>
+            </div>
+            <div id="leaderboardList">
+                <div class="empty">
+                    <div class="empty-icon">🏆</div>
+                    <div>Enter a session code to view the leaderboard</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Generate stars
+    const starsContainer = document.getElementById('stars');
+    for (let i = 0; i < 80; i++) {
+        const star = document.createElement('div');
+        star.classList.add('star');
+        const size = Math.random() * 3 + 1;
+        star.style.width = size + 'px';
+        star.style.height = size + 'px';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.animationDelay = Math.random() * 3 + 's';
+        star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+        starsContainer.appendChild(star);
+    }
+
+    async function loadLeaderboard() {
+        const code = document.getElementById('sessionCode').value.trim().toUpperCase();
+        if (!code) return;
+
+        try {
+            const res = await fetch(`/leaderboard/by-code/${code}`);
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert('Session not found!');
+                return;
+            }
+
+            renderLeaderboard(data);
+        } catch (err) {
+            alert('Something went wrong!');
+        }
+    }
+
+    function renderLeaderboard(data) {
+        const list = document.getElementById('leaderboardList');
+        const podium = document.getElementById('podium');
+
+        if (data.length === 0) {
+            list.innerHTML = `<div class="empty"><div class="empty-icon">😴</div><div>No participants yet!</div></div>`;
+            podium.style.display = 'none';
+            return;
+        }
+
+        // Render podium (top 3)
+        podium.style.display = 'flex';
+        const medals = ['🥇', '🥈', '🥉'];
+        const order = data.length >= 3 ? [1, 0, 2] : data.length === 2 ? [1, 0] : [0];
+
+        podium.innerHTML = order.map(i => {
+            if (!data[i]) return '';
+            return `
+                <div class="podium-item ${i === 0 ? 'first' : i === 1 ? 'second' : 'third'}">
+                    <div class="podium-avatar">${medals[i]}</div>
+                    <div class="podium-name">${data[i].username}</div>
+                    <div class="podium-score">${data[i].total_score} pts</div>
+                    <div class="podium-block">${i + 1}</div>
+                </div>
+            `;
+        }).join('');
+
+        // Render full list
+        list.innerHTML = data.map((player, index) => `
+            <div class="list-item">
+                <span class="rank rank-${index + 1}">${index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}</span>
+                <span class="player-name">${player.username}</span>
+                <span class="score">${player.total_score} pts</span>
+            </div>
+        `).join('');
+    }
+
+    // Auto-load if code is in URL
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('code')) {
+        document.getElementById('sessionCode').value = params.get('code');
+        loadLeaderboard();
+    }
+</script>
+</body>
+</html

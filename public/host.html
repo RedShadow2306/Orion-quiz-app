@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orion - Host</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0a0a1a;
+            min-height: 100vh;
+            color: white;
+            padding: 30px 20px;
+        }
+        .stars {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 0;
+        }
+        .star {
+            position: absolute; background: white;
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+        .page {
+            max-width: 700px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        .header {
+            display: flex; align-items: center;
+            gap: 15px; margin-bottom: 35px;
+        }
+        .back {
+            color: rgba(255,255,255,0.4);
+            text-decoration: none; font-size: 1.5rem;
+            transition: color 0.3s;
+        }
+        .back:hover { color: white; }
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(90deg, #818cf8, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px; padding: 30px;
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            font-size: 1rem; margin-bottom: 20px;
+            opacity: 0.6; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .form-group { margin-bottom: 18px; }
+        label {
+            display: block; margin-bottom: 8px;
+            opacity: 0.5; font-size: 0.8rem;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        input, textarea, select {
+            width: 100%; padding: 13px 18px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px; color: white;
+            font-size: 0.95rem; outline: none;
+            transition: border 0.3s;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        input:focus, textarea:focus, select:focus { border-color: #818cf8; }
+        input::placeholder, textarea::placeholder { opacity: 0.3; }
+        select option { background: #1a1a2e; }
+        textarea { resize: vertical; min-height: 80px; }
+        .question-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 15px; padding: 20px;
+            margin-bottom: 15px; position: relative;
+        }
+        .question-number {
+            font-size: 0.75rem; opacity: 0.4;
+            text-transform: uppercase; letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+        .options-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 10px; margin-top: 12px;
+        }
+        .option-input {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .option-input input[type="radio"] {
+            width: auto; accent-color: #818cf8; cursor: pointer;
+        }
+        .option-input input[type="text"] {
+            flex: 1; padding: 10px 14px; font-size: 0.85rem;
+        }
+        .correct-hint {
+            font-size: 0.75rem; opacity: 0.4; margin-top: 8px;
+        }
+        .remove-btn {
+            position: absolute; top: 15px; right: 15px;
+            background: rgba(239,68,68,0.2);
+            border: none; color: #fca5a5;
+            border-radius: 8px; padding: 5px 10px;
+            cursor: pointer; font-size: 0.8rem;
+            transition: background 0.3s;
+        }
+        .remove-btn:hover { background: rgba(239,68,68,0.4); }
+        .add-question-btn {
+            width: 100%; padding: 14px;
+            background: rgba(129,140,248,0.1);
+            border: 2px dashed rgba(129,140,248,0.3);
+            border-radius: 12px; color: #818cf8;
+            font-size: 0.95rem; cursor: pointer;
+            transition: all 0.3s; margin-bottom: 20px;
+        }
+        .add-question-btn:hover {
+            background: rgba(129,140,248,0.2);
+            border-color: #818cf8;
+        }
+        .submit-btn {
+            width: 100%; padding: 16px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border: none; border-radius: 12px; color: white;
+            font-size: 1.1rem; font-weight: bold; cursor: pointer;
+            transition: all 0.3s; letter-spacing: 1px;
+        }
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(99,102,241,0.4);
+        }
+        .submit-btn:disabled {
+            opacity: 0.6; cursor: not-allowed; transform: none;
+        }
+        .message {
+            margin-top: 15px; padding: 15px;
+            border-radius: 10px; display: none; text-align: center;
+        }
+        .error { background: rgba(239,68,68,0.2); color: #fca5a5; }
+        .success { background: rgba(34,197,94,0.2); color: #86efac; }
+        .session-code {
+            display: none; text-align: center; padding: 35px;
+            background: rgba(129,140,248,0.08);
+            border: 1px solid rgba(129,140,248,0.25);
+            border-radius: 20px; margin-top: 20px;
+        }
+        .session-code h2 { color: #a78bfa; margin-bottom: 8px; font-size: 1.3rem; }
+        .code {
+            font-size: 3rem; font-weight: 900;
+            letter-spacing: 10px; color: white;
+            background: rgba(255,255,255,0.06);
+            padding: 20px; border-radius: 14px;
+            margin: 0; display: inline-block;
+        }
+    </style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+<div class="page">
+    <div class="header">
+        <a href="/" class="back">←</a>
+        <h1>⭐ Host a Quiz</h1>
+    </div>
+
+    <div class="card">
+        <h2>📋 Quiz Details</h2>
+        <div class="form-group">
+            <label>Quiz Title</label>
+            <input type="text" id="quizTitle" placeholder="e.g. Science Quiz Chapter 3" />
+        </div>
+        <div class="form-group">
+            <label>Description (optional)</label>
+            <textarea id="quizDesc" placeholder="Brief description of the quiz..."></textarea>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>❓ Questions</h2>
+        <div id="questionsContainer"></div>
+        <button class="add-question-btn" onclick="addQuestion()">+ Add Question</button>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="createQuiz()">
+        🚀 Create Quiz &amp; Get Join Code
+    </button>
+    <div class="message" id="message"></div>
+
+    <div class="session-code" id="sessionCode">
+        <h2>🎉 Quiz Created!</h2>
+        <p style="opacity:0.5; margin-bottom:15px;">Share this code with your participants:</p>
+        <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin:15px 0;">
+            <div class="code" id="codeDisplay"></div>
+            <button onclick="copyCode()" style="padding:12px 20px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:10px; color:white; cursor:pointer; font-size:0.85rem;">📋 Copy</button>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.05); border-radius:12px; padding:15px; margin:15px 0;">
+            <div style="font-size:0.85rem; opacity:0.5; margin-bottom:5px; text-transform:uppercase; letter-spacing:1px;">Participants Waiting</div>
+            <div id="participantCount" style="font-size:2.5rem; font-weight:bold; color:#a78bfa;">0</div>
+        </div>
+
+        <p style="font-size:0.8rem; opacity:0.4; margin-bottom:20px;">Waiting for participants to join...</p>
+
+        <button id="startBtn" onclick="startQuiz()" style="
+            width:100%; padding:16px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border:none; border-radius:12px;
+            color:white; font-size:1.1rem; font-weight:bold;
+            cursor:pointer; transition:all 0.3s;
+            letter-spacing:1px; opacity:0.5;">
+            🚀 Start Quiz (0 players)
+        </button>
+        <p style="font-size:0.8rem; opacity:0.4; margin-top:10px;">At least 1 participant must join before starting</p>
+        <button onclick="addMoreQuestions()" style="margin-top:15px; width:100%; padding:14px; background:rgba(129,140,248,0.1); border:2px dashed rgba(129,140,248,0.3); border-radius:12px; color:#818cf8; font-size:0.95rem; cursor:pointer;">+ Add More Questions</button>
+    </div>
+</div>
+
+<script>
+    // Stars
+    const starsContainer = document.getElementById('stars');
+    for (let i = 0; i < 80; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        const size = Math.random() * 3 + 1;
+        star.style.cssText = `width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${Math.random()*3+2}s;`;
+        starsContainer.appendChild(star);
+    }
+
+    let currentJoinCode = '';
+    let pollingInterval = null;
+    let questionCount = 0;
+
+    function copyCode() {
+        navigator.clipboard.writeText(currentJoinCode);
+        alert('Code copied!');
+    }
+
+    function startPolling(joinCode) {
+        pollingInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`/sessions/${joinCode}/status`);
+                const data = await res.json();
+                const count = data.participant_count;
+                document.getElementById('participantCount').textContent = count;
+                const startBtn = document.getElementById('startBtn');
+                startBtn.textContent = `🚀 Start Quiz (${count} player${count !== 1 ? 's' : ''})`;
+                startBtn.style.opacity = count > 0 ? '1' : '0.5';
+            } catch (err) {}
+        }, 2000);
+    }
+async function addMoreQuestions() {
+    addQuestion();
+    const card = document.querySelector('.question-card:last-child');
+    card.scrollIntoView({ behavior: 'smooth' });
+    
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.style.display = 'block';
+    submitBtn.disabled = false;
+    submitBtn.textContent = '➕ Save New Questions';
+}
+    async function startQuiz() {
+        const count = parseInt(document.getElementById('participantCount').textContent);
+        if (count === 0) {
+            alert('Wait for at least 1 participant to join!');
+            return;
+        }
+        try {
+            clearInterval(pollingInterval);
+            await fetch(`/sessions/${currentJoinCode}/start`, { method: 'POST' });
+            const btn = document.getElementById('startBtn');
+            btn.textContent = '✅ Quiz Started!';
+            btn.style.background = 'rgba(34,197,94,0.3)';
+            btn.disabled = true;
+        } catch (err) {
+            alert('Error starting quiz!');
+        }
+    }
+
+    function addQuestion() {
+        questionCount++;
+        const container = document.getElementById('questionsContainer');
+        const div = document.createElement('div');
+        div.className = 'question-card';
+        div.id = `question-${questionCount}`;
+        div.innerHTML = `
+            <div class="question-number">Question ${questionCount}</div>
+            <button class="remove-btn" onclick="removeQuestion(${questionCount})">✕ Remove</button>
+            <div class="form-group">
+                <label>Question Text</label>
+                <input type="text" placeholder="Enter your question..." class="q-text" />
+            </div>
+            <div class="form-group">
+                <label>Question Type</label>
+                <select class="q-type" onchange="toggleOptions(${questionCount}, this.value)">
+                    <option value="mcq">MCQ (Multiple Choice)</option>
+                    <option value="poll">Poll (No correct answer)</option>
+                    <option value="open_ended">Open Ended (Free text)</option>
+                </select>
+            </div>
+            <div class="form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div>
+                    <label>Time Limit (seconds)</label>
+                    <input type="number" value="30" min="10" max="120" class="q-time" />
+                </div>
+                <div>
+                    <label>Points</label>
+                    <input type="number" value="10" min="0" max="100" class="q-points" />
+                </div>
+            </div>
+            <div class="options-section" id="options-${questionCount}">
+                <label>Options <span style="opacity:0.4;font-size:0.75rem;">(● = correct answer)</span></label>
+                <div class="options-grid">
+                    <div class="option-input">
+                        <input type="radio" name="correct-${questionCount}" value="0" checked />
+                        <input type="text" placeholder="Option A" class="opt" />
+                    </div>
+                    <div class="option-input">
+                        <input type="radio" name="correct-${questionCount}" value="1" />
+                        <input type="text" placeholder="Option B" class="opt" />
+                    </div>
+                    <div class="option-input">
+                        <input type="radio" name="correct-${questionCount}" value="2" />
+                        <input type="text" placeholder="Option C" class="opt" />
+                    </div>
+                    <div class="option-input">
+                        <input type="radio" name="correct-${questionCount}" value="3" />
+                        <input type="text" placeholder="Option D" class="opt" />
+                    </div>
+                </div>
+                <p class="correct-hint">Select the radio button next to the correct answer</p>
+            </div>
+        `;
+        container.appendChild(div);
+    }
+
+    function toggleOptions(qNum, type) {
+        document.getElementById(`options-${qNum}`).style.display =
+            type === 'open_ended' ? 'none' : 'block';
+    }
+
+    function removeQuestion(qNum) {
+        document.getElementById(`question-${qNum}`).remove();
+    }
+
+    function generateCode() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+        return code;
+    }
+
+    function showMessage(text, type) {
+        const msg = document.getElementById('message');
+        msg.style.display = 'block';
+        msg.className = `message ${type}`;
+        msg.textContent = text;
+    }
+
+    async function createQuiz() {
+        const title = document.getElementById('quizTitle').value.trim();
+        const desc  = document.getElementById('quizDesc').value.trim();
+        const btn   = document.getElementById('submitBtn');
+
+        if (!title) return showMessage('⚠️ Please enter a quiz title!', 'error');
+
+        const questionCards = document.querySelectorAll('.question-card');
+        if (questionCards.length === 0)
+            return showMessage('⚠️ Please add at least one question!', 'error');
+
+        const questions = [];
+        for (const card of questionCards) {
+            const qText = card.querySelector('.q-text').value.trim();
+            const qType = card.querySelector('.q-type').value;
+            const qTime = parseInt(card.querySelector('.q-time').value) || 30;
+            const qPts  = parseInt(card.querySelector('.q-points').value) || 10;
+
+            if (!qText) return showMessage('⚠️ All questions need text!', 'error');
+
+            const question = {
+                question_text: qText,
+                question_type: qType,
+                time_limit_seconds: qTime,
+                points: qPts,
+                options: []
+            };
+
+            if (qType !== 'open_ended') {
+                const optInputs = card.querySelectorAll('.opt');
+                const correctRadio = card.querySelector(`input[name^="correct"]:checked`);
+                const correctIndex = correctRadio ? parseInt(correctRadio.value) : 0;
+
+                optInputs.forEach((input, index) => {
+                    if (input.value.trim()) {
+                        question.options.push({
+                            text: input.value.trim(),
+                            is_correct: (index === correctIndex && qType === 'mcq')
+                        });
+                    }
+                });
+
+                if (question.options.length < 2)
+                    return showMessage('⚠️ Each MCQ/Poll needs at least 2 options!', 'error');
+            }
+            questions.push(question);
+        }
+
+        btn.disabled = true;
+        btn.textContent = '⏳ Creating quiz...';
+        document.getElementById('message').style.display = 'none';
+
+        try {
+            // Step 1: Create quiz
+            const quizRes = await fetch('/quizzes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ host_id: 1, title, description: desc })
+            });
+            const quiz = await quizRes.json();
+            if (!quizRes.ok) throw new Error(quiz.error);
+
+            // Step 2: Save questions
+            const questionsRes = await fetch('/questions/bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quiz_id: quiz.quiz_id, questions })
+            });
+            const questionsData = await questionsRes.json();
+            if (!questionsRes.ok) throw new Error(questionsData.error);
+
+            // Step 3: Create session
+            const joinCode = generateCode();
+            const sessionRes = await fetch('/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quiz_id: quiz.quiz_id, join_code: joinCode })
+            });
+            const sessionData = await sessionRes.json();
+            if (!sessionRes.ok) throw new Error(sessionData.error);
+
+            // Show session code box
+            currentJoinCode = joinCode;
+            document.getElementById('message').style.display = 'none';
+            document.getElementById('sessionCode').style.display = 'block';
+            document.getElementById('codeDisplay').textContent = joinCode;
+            document.getElementById('sessionCode').scrollIntoView({ behavior: 'smooth' });
+            startPolling(joinCode);
+
+            btn.textContent = '✅ Quiz Created!';
+
+        } catch (err) {
+            showMessage(`❌ Error: ${err.message}`, 'error');
+            btn.disabled = false;
+            btn.textContent = '🚀 Create Quiz & Get Join Code';
+        }
+    }
+
+    // Add one question by default
+    addQuestion();
+</script>
+</body>
+</html>

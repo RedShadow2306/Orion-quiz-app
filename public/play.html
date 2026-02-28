@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orion - Play</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0a0a1a;
+            min-height: 100vh;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .stars {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            max-width: 700px;
+            padding: 30px 20px;
+            position: relative;
+            z-index: 1;
+        }
+        .screen.active { display: block; }
+
+        /* Loading Screen */
+        .loading-box {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .spinner {
+            width: 60px; height: 60px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: #818cf8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Quiz Screen */
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .progress {
+            font-size: 0.85rem;
+            opacity: 0.5;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .score-display {
+            background: rgba(129,140,248,0.15);
+            border: 1px solid rgba(129,140,248,0.3);
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 0.9rem;
+            color: #a78bfa;
+            font-weight: bold;
+        }
+        .timer-bar-container {
+            background: rgba(255,255,255,0.08);
+            border-radius: 10px;
+            height: 8px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+        .timer-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            border-radius: 10px;
+            transition: width 1s linear, background 0.3s;
+        }
+        .timer-text {
+            text-align: center;
+            font-size: 0.85rem;
+            opacity: 0.5;
+            margin-bottom: 20px;
+        }
+        .question-type-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+        .badge-mcq { background: rgba(99,102,241,0.2); color: #818cf8; }
+        .badge-poll { background: rgba(34,197,94,0.2); color: #86efac; }
+        .badge-open_ended { background: rgba(251,191,36,0.2); color: #fbbf24; }
+
+        .question-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .option-btn {
+            padding: 18px 20px;
+            background: rgba(255,255,255,0.06);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 14px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .option-btn:hover:not(:disabled) {
+            background: rgba(129,140,248,0.15);
+            border-color: #818cf8;
+            transform: translateY(-2px);
+        }
+        .option-btn.correct {
+            background: rgba(34,197,94,0.2);
+            border-color: #22c55e;
+            color: #86efac;
+        }
+        .option-btn.wrong {
+            background: rgba(239,68,68,0.2);
+            border-color: #ef4444;
+            color: #fca5a5;
+        }
+        .option-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .open-answer-area {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(255,255,255,0.06);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 14px;
+            color: white;
+            font-size: 1rem;
+            font-family: 'Segoe UI', sans-serif;
+            outline: none;
+            resize: vertical;
+            min-height: 120px;
+            margin-bottom: 15px;
+        }
+        .open-answer-area:focus { border-color: #fbbf24; }
+
+        .feedback-bar {
+            display: none;
+            padding: 14px 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        .feedback-correct { background: rgba(34,197,94,0.2); color: #86efac; border: 1px solid rgba(34,197,94,0.3); }
+        .feedback-wrong { background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+        .feedback-poll { background: rgba(251,191,36,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+
+        .next-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: none;
+            letter-spacing: 1px;
+        }
+        .next-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99,102,241,0.4);
+        }
+
+        .submit-open-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border: none;
+            border-radius: 12px;
+            color: #0a0a1a;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 12px;
+        }
+        .submit-open-btn:hover { transform: translateY(-2px); }
+
+        /* Summary Screen */
+        .summary-box {
+            text-align: center;
+            padding: 20px;
+        }
+        .summary-icon { font-size: 5rem; margin-bottom: 15px; }
+        .summary-title {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #818cf8, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+        }
+        .summary-stats {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 35px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 20px 25px;
+            min-width: 120px;
+        }
+        .stat-num {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #a78bfa;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            opacity: 0.5;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .leaderboard-btn {
+            display: inline-block;
+            padding: 16px 40px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border: none;
+            border-radius: 12px;
+            color: #0a0a1a;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            letter-spacing: 1px;
+        }
+        .leaderboard-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(251,191,36,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+
+    <!-- Loading Screen -->
+<div class="screen active" id="loadingScreen">
+    <div class="loading-box">
+        <div class="spinner"></div>
+        <h2>Loading Quiz...</h2>
+        <p style="opacity:0.4; margin-top:10px;">Get ready!</p>
+    </div>
+</div>
+
+<!-- Waiting Room Screen -->
+<div class="screen" id="waitingScreen">
+    <div class="loading-box">
+        <div style="font-size:5rem; margin-bottom:20px;">⭐</div>
+        <h2 style="font-size:2rem; margin-bottom:10px; background: linear-gradient(90deg, #818cf8, #a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">You're In!</h2>
+        <p style="opacity:0.5; margin-bottom:30px;">Waiting for the host to start the quiz...</p>
+        
+        <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:20px; margin-bottom:20px;">
+            <div style="font-size:0.8rem; opacity:0.4; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Playing as</div>
+            <div id="waitingName" style="font-size:1.5rem; font-weight:bold; color:#a78bfa;"></div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px; justify-content:center; opacity:0.4;">
+            <div class="spinner" style="width:20px; height:20px; border-width:2px;"></div>
+            <span style="font-size:0.9rem;">Waiting for host...</span>
+        </div>
+    </div>
+</div>
+
+    <!-- Quiz Screen -->
+    <div class="screen" id="quizScreen">
+        <div class="quiz-header">
+            <div class="progress" id="progressText">Question 1 of 5</div>
+            <div class="score-display">⭐ <span id="currentScore">0</span> pts</div>
+        </div>
+        <div class="timer-bar-container">
+            <div class="timer-bar" id="timerBar"></div>
+        </div>
+        <div class="timer-text" id="timerText">30s</div>
+
+        <div id="questionTypeBadge" class="question-type-badge badge-mcq">MCQ</div>
+        <div class="question-text" id="questionText">Loading...</div>
+
+        <div id="optionsContainer" class="options-grid"></div>
+        <textarea id="openAnswerInput" class="open-answer-area" placeholder="Type your answer here..." style="display:none;"></textarea>
+        <button class="submit-open-btn" id="submitOpenBtn" onclick="submitOpenAnswer()" style="display:none;">Submit Answer</button>
+
+        <div class="feedback-bar" id="feedbackBar"></div>
+        <button class="next-btn" id="nextBtn" onclick="nextQuestion()">Next Question →</button>
+    </div>
+
+    <!-- Summary Screen -->
+    <div class="screen" id="summaryScreen">
+        <div class="summary-box">
+            <div class="summary-icon" id="summaryIcon">🎉</div>
+            <div class="summary-title">Quiz Complete!</div>
+            <div class="summary-stats">
+                <div class="stat-card">
+                    <div class="stat-num" id="finalScore">0</div>
+                    <div class="stat-label">Total Points</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" id="correctCount">0</div>
+                    <div class="stat-label">Correct</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" id="wrongCount">0</div>
+                    <div class="stat-label">Wrong</div>
+                </div>
+            </div>
+            <a id="leaderboardLink" class="leaderboard-btn">🏆 View Leaderboard</a>
+        </div>
+    </div>
+
+    <script>
+
+        // Stars
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 80; i++) {
+            const star = document.createElement('div');
+            star.classList.add('star');
+            const size = Math.random() * 3 + 1;
+            star.style.width = size + 'px';
+            star.style.height = size + 'px';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+            starsContainer.appendChild(star);
+        }
+
+        // URL params
+        const params = new URLSearchParams(window.location.search);
+        
+        const joinCode = params.get('code');
+        const userId = parseInt(params.get('user_id'));
+        const playerName = params.get('name') || 'Player';
+        const storageKey = `orion_${joinCode}_${userId}`;
+
+
+
+        let questions = [];
+        let sessionId = null;
+        let currentIndex = 0;
+        let totalScore = 0;
+        let correctCount = 0;
+        let wrongCount = 0;
+        let timerInterval = null;
+        let timeLeft = 30;
+        let answered = false;
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        async function loadQuiz() {
+    try {
+        const res = await fetch(`/sessions/${joinCode}/questions`);
+        const data = await res.json();
+        questions = data.questions;
+        sessionId = data.session.session_id;
+        
+        // Show waiting room
+        document.getElementById('waitingName').textContent = playerName;
+        showScreen('waitingScreen');
+        
+        // Poll for host to start
+        waitForStart();
+    } catch (err) {
+        document.querySelector('.loading-box h2').textContent = 'Failed to load quiz!';
+    }
+}
+
+        function showQuestion(index) {
+            if (localStorage.getItem(storageKey + '_q' + index) === 'done') {
+    currentIndex = index;
+    nextQuestion();
+    return;
+}
+            answered = false;
+            const q = questions[index];
+            currentIndex = index;
+
+            document.getElementById('progressText').textContent = `Question ${index + 1} of ${questions.length}`;
+            document.getElementById('questionText').textContent = q.question_text;
+
+            // Badge
+            const badge = document.getElementById('questionTypeBadge');
+            badge.textContent = q.question_type === 'mcq' ? 'MCQ' : q.question_type === 'poll' ? 'Poll' : 'Open Ended';
+            badge.className = `question-type-badge badge-${q.question_type}`;
+
+            // Hide feedback & next
+            document.getElementById('feedbackBar').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'none';
+
+            // Options or text area
+            const optContainer = document.getElementById('optionsContainer');
+            const openInput = document.getElementById('openAnswerInput');
+            const submitOpenBtn = document.getElementById('submitOpenBtn');
+
+            if (q.question_type === 'open_ended') {
+                optContainer.style.display = 'none';
+                openInput.style.display = 'block';
+                openInput.value = '';
+                submitOpenBtn.style.display = 'block';
+                optContainer.innerHTML = '';
+            } else {
+                optContainer.style.display = 'grid';
+                openInput.style.display = 'none';
+                submitOpenBtn.style.display = 'none';
+                optContainer.innerHTML = q.options.map(opt => `
+                    <button class="option-btn" onclick="selectOption(${opt.option_id}, this)" data-correct="${opt.is_correct}">
+                        ${opt.option_text}
+                    </button>
+                `).join('');
+            }
+
+            // Timer
+            startTimer(q.time_limit_seconds || 30);
+        }
+
+        function startTimer(seconds) {
+            clearInterval(timerInterval);
+            timeLeft = seconds;
+            updateTimerUI(seconds, seconds);
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerUI(timeLeft, seconds);
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    if (!answered) timeUp();
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI(current, total) {
+            const pct = (current / total) * 100;
+            const bar = document.getElementById('timerBar');
+            bar.style.width = pct + '%';
+            bar.style.background = pct > 50 ? 'linear-gradient(90deg, #6366f1, #8b5cf6)' :
+                                   pct > 25 ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' :
+                                              'linear-gradient(90deg, #ef4444, #f87171)';
+            document.getElementById('timerText').textContent = current + 's';
+        }
+
+        function timeUp() {
+            answered = true;
+            disableOptions();
+            showFeedback('⏰ Time\'s up!', 'poll');
+            document.getElementById('nextBtn').style.display = 'block';
+            document.getElementById('submitOpenBtn').style.display = 'none';
+        }
+
+        async function selectOption(optionId, btn) {
+            if (answered) return;
+            answered = true;
+            clearInterval(timerInterval);
+
+            const q = questions[currentIndex];
+            disableOptions();
+
+            try {
+                const res = await fetch('/responses', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        question_id: q.question_id,
+                        user_id: userId,
+                        option_id: optionId
+                    })
+                });
+                const data = await res.json();
+
+                if (q.question_type === 'mcq') {
+                    if (data.is_correct) {
+                        btn.classList.add('correct');
+                        totalScore += data.score_awarded;
+                        correctCount++;
+                        document.getElementById('currentScore').textContent = totalScore;
+                        showFeedback(`✅ Correct! +${data.score_awarded} pts`, 'correct');
+                    } else {
+                        btn.classList.add('wrong');
+                        wrongCount++;
+                        // Show correct answer
+                        document.querySelectorAll('.option-btn').forEach(b => {
+                            if (b.dataset.correct === 'true') b.classList.add('correct');
+                        });
+                        showFeedback('❌ Wrong answer!', 'wrong');
+                    }
+                } else {
+                    showFeedback('✅ Response recorded!', 'poll');
+                }
+            } catch (err) {
+                showFeedback('⚠️ Error submitting answer', 'wrong');
+            }
+localStorage.setItem(storageKey + '_q' + currentIndex, 'done');
+            document.getElementById('nextBtn').style.display = 'block';
+        }
+
+        async function submitOpenAnswer() {
+            if (answered) return;
+            const answer = document.getElementById('openAnswerInput').value.trim();
+            if (!answer) return;
+            answered = true;
+            clearInterval(timerInterval);
+
+            const q = questions[currentIndex];
+            document.getElementById('submitOpenBtn').style.display = 'none';
+
+            try {
+                await fetch('/responses', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        question_id: q.question_id,
+                        user_id: userId,
+                        open_answer: answer
+                    })
+                });
+                showFeedback('✅ Answer submitted!', 'poll');
+            } catch (err) {
+                showFeedback('⚠️ Error submitting', 'wrong');
+            }
+
+            document.getElementById('nextBtn').style.display = 'block';
+        }
+
+        function disableOptions() {
+            document.querySelectorAll('.option-btn').forEach(b => {
+                b.disabled = true;
+                b.classList.add('disabled');
+            });
+        }
+
+        function showFeedback(msg, type) {
+            const bar = document.getElementById('feedbackBar');
+            bar.textContent = msg;
+            bar.className = `feedback-bar feedback-${type}`;
+            bar.style.display = 'block';
+        }
+
+        function nextQuestion() {
+            if (currentIndex + 1 < questions.length) {
+                showQuestion(currentIndex + 1);
+            } else {
+                showSummary();
+            }
+        }
+
+        function showSummary() {
+            clearInterval(timerInterval);
+            document.getElementById('finalScore').textContent = totalScore;
+            document.getElementById('correctCount').textContent = correctCount;
+            document.getElementById('wrongCount').textContent = wrongCount;
+            document.getElementById('summaryIcon').textContent = totalScore > 0 ? '🎉' : '😅';
+            document.getElementById('leaderboardLink').href = `leaderboard.html?code=${joinCode}`;
+            showScreen('summaryScreen');
+        }
+
+        function waitForStart() {
+    const poll = setInterval(async () => {
+        try {
+            const res = await fetch(`/sessions/${joinCode}/status`);
+            const data = await res.json();
+            if (data.status === 'active') {
+                clearInterval(poll);
+                showScreen('quizScreen');
+                showQuestion(0);
+            }
+        } catch (err) {}
+    }, 2000);
+}
+
+        // Start
+        loadQuiz();
+    </script>
+</body>
+</html>
