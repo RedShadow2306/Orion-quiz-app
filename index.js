@@ -339,4 +339,85 @@ app.post('/sessions/:join_code/start', async (req, res) => {
     }
 });
 
+// Download quiz results as CSV
+app.get('/results/:join_code', async (req, res) => {
+    try {
+        const sessionResult = await pool.query(
+            'SELECT * FROM quiz_sessions WHERE join_code = $1',
+            [req.params.join_code]
+        );
+        if (sessionResult.rows.length === 0)
+            return res.status(404).json({ error: 'Session not found' });
+
+        const session = sessionResult.rows[0];
+
+        // Get all questions for this quiz
+        const questionsResult = await pool.query(
+            'SELECT * FROM questions WHERE quiz_id = $1 ORDER BY order_num',
+            [session.quiz_id]
+        );
+        const questions = questionsResult.rows;
+
+        // Get all participants with scores
+        const participantsResult = await pool.query(
+            `SELECT u.username, sp.total_score, sp.user_id,
+             RANK() OVER (ORDER BY sp.total_score DESC) as rank
+             FROM session_participants sp
+             JOIN users u ON u.user_id = sp.user_id
+             WHERE sp.session_id = $1
+             ORDER BY sp.total_score DESC`,
+            [session.session_id]
+        );
+        const participants = participantsResult.rows;
+
+        // Get all responses
+        const responsesResult = await pool.query(
+            `SELECT r.user_id, r.question_id, r.is_correct, r.score_awarded,
+             r.open_answer, o.option_text as selected_option
+             FROM responses r
+             LEFT JOIN options o ON o.option_id = r.option_id
+             WHERE r.session_id = $1`,
+            [session.session_id]
+        );
+        const responses = responsesResult.rows;
+
+        // Build CSV
+        const quizResult = await pool.query(
+            'SELECT title FROM quizzes WHERE quiz_id = $1',
+            [session.quiz_id]
+        );
+        const quizTitle = quizResult.rows[0]?.title || 'Quiz';
+
+        // Header row
+        let csv = `Quiz: ${quizTitle}\n`;
+        csv += `Join Code: ${req.params.join_code}\n`;
+        csv += `Total Participants: ${participants.length}\n\n`;
+
+        // Column headers
+        const questionHeaders = questions.map((q, i) => `Q${i+1}: ${q.question_text.substring(0, 30)}...`).join(',');
+        csv += `Rank,Player Name,Total Score,${questionHeaders}\n`;
+
+        // Data rows
+        for (const p of participants) {
+            const playerResponses = responses.filter(r => r.user_id === p.user_id);
+            const questionData = questions.map(q => {
+                const response = playerResponses.find(r => r.question_id === q.question_id);
+                if (!response) return 'No Answer';
+                if (q.question_type === 'open_ended') return response.open_answer || 'No Answer';
+                return `${response.selected_option || 'No Answer'} (${response.is_correct ? '✓' : '✗'})`;
+            }).join(',');
+
+            csv += `${p.rank},${p.username},${p.total_score},${questionData}\n`;
+        }
+
+        // Send as downloadable file
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="orion-results-${req.params.join_code}.csv"`);
+        res.send(csv);
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.listen(PORT, () => console.log(`🚀 Orion server running on port ${PORT}`));

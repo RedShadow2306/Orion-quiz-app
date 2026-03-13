@@ -217,6 +217,17 @@
             letter-spacing:1px; opacity:0.5;">
             🚀 Start Quiz (0 players)
         </button>
+        <button id="downloadBtn" onclick="downloadResults()" style="
+            width:100%; padding:14px;
+            background: rgba(251,191,36,0.15);
+            border: 1px solid rgba(251,191,36,0.3);
+            border-radius:12px;
+            color:#fbbf24; font-size:1rem; font-weight:bold;
+            cursor:pointer; transition:all 0.3s;
+            letter-spacing:1px; margin-top:10px;
+            display:none;">
+            📥 Download Results (CSV)
+        </button>
         <p style="font-size:0.8rem; opacity:0.4; margin-top:10px;">At least 1 participant must join before starting</p>
         <button onclick="addMoreQuestions()" style="margin-top:15px; width:100%; padding:14px; background:rgba(129,140,248,0.1); border:2px dashed rgba(129,140,248,0.3); border-radius:12px; color:#818cf8; font-size:0.95rem; cursor:pointer;">+ Add More Questions</button>
     </div>
@@ -278,6 +289,7 @@ async function addMoreQuestions() {
             btn.textContent = '✅ Quiz Started!';
             btn.style.background = 'rgba(34,197,94,0.3)';
             btn.disabled = true;
+            document.getElementById('downloadBtn').style.display = 'block';
         } catch (err) {
             alert('Error starting quiz!');
         }
@@ -459,6 +471,9 @@ async function addMoreQuestions() {
             btn.disabled = false;
             btn.textContent = '🚀 Create Quiz & Get Join Code';
         }
+    }
+    function downloadResults() {
+    window.location.href = `/results/${currentJoinCode}`;
     }
 
     // Add one question by default
